@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using UnityEngine.EventSystems;
 
 public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }
-    GameObject _startPanelGO, _playPanelGO, _cardQuizGO, _answerPanelGO, _scoreGO, _answersParent, _winGO;
-    Button _playBtn, _exit, _restart, _cardBtn, _tipsBtn, _playAgain;
+    GameObject _startPanelGO, _playPanelGO, _cardQuizGO, _answerPanelGO, _scoreGO, _answersParent, _winGO, _tipsContainer;
+    Button _playBtn, _exit, _restart, _cardBtn, _playAgain;
     Image _quizImg;
     Text _textCard, _tittleQuiz, _wrongAnswer, _rightAnswer, _gameOverTxt;
 
@@ -22,6 +23,15 @@ public class UIManager : MonoBehaviour
     int correctAnswer2 = 7;
     int number = 0;
     Question quizUI;
+
+    //Tips
+    public Tips[] tips;
+    private Button _getTips;
+    private Button[] _tipsBtn = new Button[6];
+    private Button selectedBtn;
+    GameObject _panelTip;
+    private Text _txtTip;
+    private Image _imgTip;
 
     private void Awake()
     {
@@ -39,6 +49,7 @@ public class UIManager : MonoBehaviour
         _cardQuizGO = GameObject.Find("CardsImg");
         _scoreGO = GameObject.Find("ScoreObj");
         _winGO = GameObject.Find("WinContainer");
+        _panelTip = GameObject.Find("TipPanel");
         _quizImg = GameObject.Find("ImageQuiz").GetComponent<Image>();
         _tittleQuiz = GameObject.Find("QuizText").GetComponent<Text>();
         _wrongAnswer = GameObject.Find("WrongAnswer").GetComponent<Text>();
@@ -50,7 +61,7 @@ public class UIManager : MonoBehaviour
 
         _playBtn = GameObject.Find("PlayBtn").GetComponent<Button>();
         _cardBtn = GameObject.Find("Cards").GetComponent<Button>();
-        _tipsBtn = GameObject.Find("TipsBtn").GetComponent<Button>();
+        _getTips = GameObject.Find("TipsBtn").GetComponent<Button>();
         _playAgain = GameObject.Find("PlayAgain").GetComponent<Button>();
         _exit = GameObject.Find("Exit").GetComponent<Button>();
         _restart = GameObject.Find("Restart").GetComponent<Button>();
@@ -61,6 +72,16 @@ public class UIManager : MonoBehaviour
         _answer[3] = GameObject.Find("Manganes").GetComponent<Button>();
         _answer[4] = GameObject.Find("Niquel").GetComponent<Button>();
         _answer[5] = GameObject.Find("Fosfato").GetComponent<Button>();
+
+        _tipsBtn[0] = GameObject.Find("TipMinerio").GetComponent<Button>();
+        _tipsBtn[1] = GameObject.Find("TipCobre").GetComponent<Button>();
+        _tipsBtn[2] = GameObject.Find("ReturnGame").GetComponent<Button>();
+        _tipsBtn[3] = GameObject.Find("TipManganes").GetComponent<Button>();
+        _tipsBtn[4] = GameObject.Find("TipNiquel").GetComponent<Button>();
+        _tipsBtn[5] = GameObject.Find("TipFosfato").GetComponent<Button>();
+        _txtTip = GameObject.Find("TextTip").GetComponent<Text>();
+        _imgTip = GameObject.Find("TipImg").GetComponent<Image>();
+        _tipsContainer =  GameObject.Find("Tips");
 
         _answer[0].onClick.AddListener(Cobre);
         _answer[1].onClick.AddListener(Minerio);
@@ -74,19 +95,36 @@ public class UIManager : MonoBehaviour
         _playAgain.onClick.AddListener(PlayAgain);
         _exit.onClick.AddListener(Exit);
         _restart.onClick.AddListener(PlayAgain);
+        _getTips.onClick.AddListener(GetTips);
+        _tipsBtn[2].onClick.AddListener(ReturnGame);
 
         _quizImg.enabled = false;
         _wrongAnswer.enabled = false;
         _rightAnswer.enabled = false;
         _gameOverTxt.enabled = false;
+        _restart.interactable = false;
+        _gameOverTxt.enabled = false;
+
+        for (int i = 0; i < 6; i++)
+        {
+            if (i == 2)
+                i++;
+
+            _tipsBtn[i].onClick.AddListener(Tip);
+
+
+        }
 
         _playAgain.gameObject.SetActive(false);
         _playPanelGO.SetActive(false);
         _answerPanelGO.SetActive(false);
         _cardQuizGO.SetActive(false);
-        _tipsBtn.gameObject.SetActive(false);
+        _getTips.gameObject.SetActive(false);
         _scoreGO.SetActive(false);
         _winGO.SetActive(false);
+        _panelTip.SetActive(false);
+        _cardBtn.interactable = false;
+
 
 
     }
@@ -95,8 +133,11 @@ public class UIManager : MonoBehaviour
         _startPanelGO.SetActive(false);
         _playPanelGO.SetActive(true);
         _cardQuizGO.SetActive(true);
-        _tipsBtn.gameObject.SetActive(true);
+        _getTips.gameObject.SetActive(true);
+        _getTips.enabled = true;
         _scoreGO.SetActive(true);
+        _cardBtn.interactable = true;
+        _restart.interactable = true;
 
         _cardBtn.GetComponent<RectTransform>().anchoredPosition = new Vector2(-85, 0);
     }
@@ -109,7 +150,7 @@ public class UIManager : MonoBehaviour
         _startPanelGO.SetActive(false);
         _playPanelGO.SetActive(true);
         _cardQuizGO.SetActive(true);
-        _tipsBtn.gameObject.SetActive(true);
+        _getTips.enabled = true;
         _scoreGO.SetActive(true);
         _quizImg.enabled = false;
         _textCard.enabled = true;
@@ -220,6 +261,7 @@ public class UIManager : MonoBehaviour
         _answersParent.SetActive(false);
         _tittleQuiz.enabled = false;
         _wrongAnswer.enabled = false;
+        _getTips.interactable = false;
 
         yield return new WaitForSeconds(0.2f);
 
@@ -247,9 +289,11 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    void Exit(){
+    void Exit()
+    {
         Application.Quit();
     }
+
 
     void Cobre() { answerInt = 0; CorrectQuestion(_answer[answerInt].GetComponent<Button>()); }
     void Minerio() { answerInt = 1; CorrectQuestion(_answer[answerInt].GetComponent<Button>()); }
@@ -257,6 +301,49 @@ public class UIManager : MonoBehaviour
     void Manganes() { answerInt = 3; CorrectQuestion(_answer[answerInt].GetComponent<Button>()); }
     void Niquel() { answerInt = 4; CorrectQuestion(_answer[answerInt].GetComponent<Button>()); }
     void Fosfato() { answerInt = 5; CorrectQuestion(_answer[answerInt].GetComponent<Button>()); }
+
+
+    void GetTips()
+    {
+        _panelTip.SetActive(true);
+        _answerPanelGO.SetActive(false);
+        _imgTip.color = Color.clear;
+
+    }
+
+    void ReturnGame()
+    {
+        _panelTip.SetActive(false);
+        _answerPanelGO.SetActive(true);
+        _getTips.interactable = true;
+
+    }
+
+    void Tip()
+    {
+        if (selectedBtn)
+        {
+            selectedBtn.interactable = true;
+        }
+        for (int i = 0; i < 5; i++)
+        {
+            if (EventSystem.current.currentSelectedGameObject.name == tips[i].nameTip)
+            {
+                _imgTip.color = Color.white;
+                _txtTip.text = tips[i].txtTip;
+                _txtTip.color = tips[i].colorTip;
+                _imgTip.sprite = tips[i].imgTip;
+                _tipsContainer.SetActive(false);
+
+
+
+                Button n = EventSystem.current.currentSelectedGameObject.GetComponent<Button>();
+                selectedBtn = n;
+                n.interactable = false;
+                break;
+            }
+        }
+    }
 
 
 
